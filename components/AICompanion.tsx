@@ -149,7 +149,7 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
         <div ref={chatEndRef} />
       </div>
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex justify-center gap-1 mb-3">
+        <div className="flex justify-center flex-wrap gap-2 mb-3">
             {aiModes.map(mode => (
                 <button
                     key={mode.id}
@@ -162,7 +162,7 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
                     }`}
                 >
                     <mode.icon className="w-4 h-4" />
-                    <span className="hidden sm:inline">{mode.name}</span>
+                    <span>{mode.name}</span>
                 </button>
             ))}
         </div>

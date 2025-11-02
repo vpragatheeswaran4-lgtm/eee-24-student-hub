@@ -35,8 +35,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
         aria-hidden="true"
       ></div>
       
-      <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl m-4 w-full max-w-lg">
-        <div className="flex items-start justify-between p-4 border-b border-gray-200 dark:border-gray-700 rounded-t">
+      <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl m-4 w-full max-w-lg flex flex-col max-h-[90vh]">
+        <div className="flex items-start justify-between p-4 border-b border-gray-200 dark:border-gray-700 rounded-t flex-shrink-0">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white" id="modal-title">
             {title}
           </h3>
@@ -49,7 +49,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
             <span className="sr-only">Close modal</span>
           </button>
         </div>
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto">
           {children}
         </div>
       </div>

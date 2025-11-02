@@ -7,6 +7,7 @@ import LinkIcon from './icons/LinkIcon';
 import PlusIcon from './icons/PlusIcon';
 import FolderIcon from './icons/FolderIcon';
 import EditIcon from './icons/EditIcon';
+import ArrowLeftIcon from './icons/ArrowLeftIcon';
 
 interface FileListProps {
   userRole: UserRole;
@@ -71,7 +72,6 @@ const FileUploader: React.FC<{ onAddFile: (file: File) => void }> = ({ onAddFile
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                 <span className="font-semibold text-blue-600 dark:text-blue-400">Click to upload</span> or drag and drop
             </p>
-            <p className="text-xs text-gray-500">Any file type up to 10MB</p>
         </div>
     );
 };
@@ -165,22 +165,12 @@ const FileList: React.FC<FileListProps> = ({ userRole, files, currentFolderId, o
     setEditingName('');
   };
 
-  const buildBreadcrumbs = () => {
-    const crumbs: {id: string | null, name: string}[] = [{ id: null, name: 'All Files' }];
-    let currentId = currentFolderId;
-    while (currentId) {
-      const folder = files.find(f => f.id === currentId);
-      if (folder) {
-        crumbs.unshift({ id: folder.id, name: folder.name });
-        currentId = folder.parentId ?? null;
-      } else {
-        break;
-      }
+  const handleBack = () => {
+    if (currentFolderId) {
+      const currentFolder = files.find(f => f.id === currentFolderId);
+      onNavigate(currentFolder?.parentId ?? null);
     }
-    return crumbs;
   };
-  
-  const breadcrumbs = buildBreadcrumbs();
 
   const displayedFiles = files
     .filter(file => file.parentId === currentFolderId)
@@ -196,22 +186,6 @@ const FileList: React.FC<FileListProps> = ({ userRole, files, currentFolderId, o
   return (
     <div className="bg-slate-50/90 dark:bg-gray-800/90 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-lg">
       <h2 className="text-xl font-bold mb-4">Documents & Files</h2>
-
-      <nav aria-label="Breadcrumb" className="mb-4 text-sm text-gray-600 dark:text-gray-400 flex items-center flex-wrap">
-        {breadcrumbs.map((crumb, index) => (
-          <React.Fragment key={crumb.id || 'root'}>
-            {index > 0 && <span className="mx-2 select-none">/</span>}
-            <button
-              onClick={() => onNavigate(crumb.id)}
-              className={`hover:underline ${index === breadcrumbs.length - 1 ? 'font-semibold text-gray-800 dark:text-gray-200 cursor-default' : ''}`}
-              disabled={index === breadcrumbs.length - 1}
-              aria-current={index === breadcrumbs.length - 1 ? 'page' : undefined}
-            >
-              {crumb.name}
-            </button>
-          </React.Fragment>
-        ))}
-      </nav>
 
       {userRole === UserRole.Admin && (
         <div className="mb-6">
@@ -288,6 +262,17 @@ const FileList: React.FC<FileListProps> = ({ userRole, files, currentFolderId, o
             </p>
         )}
       </div>
+      {userRole === UserRole.Student && currentFolderId && (
+        <div className="mt-6 text-center">
+          <button
+            onClick={handleBack}
+            className="flex items-center justify-center w-full sm:w-auto sm:inline-flex space-x-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600/50 transition-colors"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+            <span>Back</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
