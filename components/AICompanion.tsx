@@ -95,7 +95,7 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
   };
 
   return (
-    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg max-w-3xl mx-auto flex flex-col" style={{height: 'calc(100vh - 12rem)'}}>
+    <div className="bg-slate-50/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg shadow-lg max-w-4xl mx-auto flex flex-col h-[calc(100vh-10rem)] md:h-[calc(100vh-8rem)]">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {chatHistory.map((msg, index) => (
           <div key={index} className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -162,7 +162,7 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
                     }`}
                 >
                     <mode.icon className="w-4 h-4" />
-                    <span>{mode.name}</span>
+                    <span className="hidden sm:inline">{mode.name}</span>
                 </button>
             ))}
         </div>

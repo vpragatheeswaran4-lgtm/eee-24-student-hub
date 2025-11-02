@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import Header from './components/Header';
-import Dashboard from './components/Dashboard';
+import AppLayout from './components/layout/AppLayout';
 import { UserRole, Tab, UploadedFile, Reminder, EventLink, ChatMessage, ChatAttachment, AiMode, Source } from './types';
 import { GoogleGenAI } from '@google/genai';
 
@@ -344,35 +343,31 @@ const App: React.FC = () => {
   return (
     <div className="relative min-h-screen text-gray-900 dark:text-gray-100 font-sans overflow-hidden">
         <AnimatedBackground activeTab={activeTab} />
-        <div className="relative z-10 bg-black bg-opacity-10 dark:bg-opacity-20 min-h-screen">
-            <Header userRole={userRole} onRoleChange={setUserRole} />
-            <main className="p-4 sm:p-6 lg:p-8">
-                <Dashboard
-                userRole={userRole}
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-                files={files}
-                currentFolderId={currentFolderId}
-                onNavigateToFolder={setCurrentFolderId}
-                reminders={reminders}
-                eventLinks={eventLinks}
-                onAddFile={handleAddFile}
-                onDeleteFile={handleDeleteFile}
-                onAddFileLink={handleAddFileLink}
-                onAddFolder={handleAddFolder}
-                onRenameFile={handleRenameFile}
-                onAddReminder={handleAddReminder}
-                onDeleteReminder={handleDeleteReminder}
-                onAddEventLink={handleAddEventLink}
-                onDeleteEventLink={handleDeleteEventLink}
-                chatHistory={chatHistory}
-                isAiLoading={isAiLoading}
-                onSendMessageToAI={handleSendMessageToAI}
-                aiMode={aiMode}
-                onAiModeChange={setAiMode}
-                />
-            </main>
-        </div>
+        <AppLayout
+            userRole={userRole}
+            onRoleChange={setUserRole}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            files={files}
+            currentFolderId={currentFolderId}
+            onNavigateToFolder={setCurrentFolderId}
+            reminders={reminders}
+            eventLinks={eventLinks}
+            onAddFile={handleAddFile}
+            onDeleteFile={handleDeleteFile}
+            onAddFileLink={handleAddFileLink}
+            onAddFolder={handleAddFolder}
+            onRenameFile={handleRenameFile}
+            onAddReminder={handleAddReminder}
+            onDeleteReminder={handleDeleteReminder}
+            onAddEventLink={handleAddEventLink}
+            onDeleteEventLink={handleDeleteEventLink}
+            chatHistory={chatHistory}
+            isAiLoading={isAiLoading}
+            onSendMessageToAI={handleSendMessageToAI}
+            aiMode={aiMode}
+            onAiModeChange={setAiMode}
+        />
     </div>
   );
 };

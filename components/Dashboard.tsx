@@ -4,15 +4,10 @@ import FileList from './FileList';
 import Reminders from './Reminders';
 import EventLinks from './EventLinks';
 import AICompanion from './AICompanion';
-import FileIcon from './icons/FileIcon';
-import CalendarIcon from './icons/CalendarIcon';
-import LinkIcon from './icons/LinkIcon';
-import SparklesIcon from './icons/SparklesIcon';
 
 interface DashboardProps {
   userRole: UserRole;
   activeTab: Tab;
-  onTabChange: (tab: Tab) => void;
   files: UploadedFile[];
   currentFolderId: string | null;
   onNavigateToFolder: (folderId: string | null) => void;
@@ -38,7 +33,6 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   const {
     userRole,
     activeTab,
-    onTabChange,
     files,
     currentFolderId,
     onNavigateToFolder,
@@ -59,13 +53,6 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     aiMode,
     onAiModeChange
   } = props;
-
-  const tabs: { id: Tab; name: string; icon: React.FC<React.SVGProps<SVGSVGElement>> }[] = [
-    { id: 'ai', name: 'AI Assistant', icon: SparklesIcon },
-    { id: 'files', name: 'Files', icon: FileIcon },
-    { id: 'reminders', name: 'Reminders', icon: CalendarIcon },
-    { id: 'events', name: 'Events', icon: LinkIcon },
-  ];
 
   const renderContent = () => {
     switch (activeTab) {
@@ -99,28 +86,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
   };
 
   return (
-    <div className="flex flex-col items-center gap-6">
-      <nav className="w-full max-w-xl">
-        <div className="flex justify-center space-x-2 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm p-2 rounded-xl shadow-lg">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id as Tab)}
-              className={`flex-1 flex items-center justify-center space-x-2 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
-                activeTab === tab.id
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-gray-700/70'
-              }`}
-            >
-              <tab.icon className="w-5 h-5" />
-              <span>{tab.name}</span>
-            </button>
-          ))}
-        </div>
-      </nav>
-      <div className="w-full max-w-4xl">
+    <div className="w-full">
         {renderContent()}
-      </div>
     </div>
   );
 };

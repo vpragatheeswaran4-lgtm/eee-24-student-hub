@@ -194,7 +194,7 @@ const FileList: React.FC<FileListProps> = ({ userRole, files, currentFolderId, o
     });
 
   return (
-    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-lg">
+    <div className="bg-slate-50/90 dark:bg-gray-800/90 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-lg">
       <h2 className="text-xl font-bold mb-4">Documents & Files</h2>
 
       <nav aria-label="Breadcrumb" className="mb-4 text-sm text-gray-600 dark:text-gray-400 flex items-center flex-wrap">

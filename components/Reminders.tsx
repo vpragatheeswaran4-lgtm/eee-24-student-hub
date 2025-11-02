@@ -69,7 +69,7 @@ const Reminders: React.FC<RemindersProps> = ({ userRole, reminders, onAddReminde
   };
   
   return (
-    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-lg">
+    <div className="bg-slate-50/90 dark:bg-gray-800/90 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-lg">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Reminders</h2>
         {userRole === UserRole.Admin && (
