@@ -163,6 +163,36 @@ const App: React.FC = () => {
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         
+        if (aiMode === 'image') {
+            if (!prompt) {
+                setChatHistory(prev => [...prev, { role: 'model', text: "Please describe the image you want to generate." }]);
+                setIsAiLoading(false);
+                return;
+            }
+            const imageResponse = await ai.models.generateImages({
+                model: 'imagen-4.0-generate-001',
+                prompt: prompt,
+                config: {
+                  numberOfImages: 1,
+                  outputMimeType: 'image/jpeg',
+                  aspectRatio: '1:1',
+                },
+            });
+
+            const base64ImageBytes: string = imageResponse.generatedImages[0].image.imageBytes;
+            const imageUrl = `data:image/jpeg;base64,${base64ImageBytes}`;
+            
+            const imageAttachment: ChatAttachment = {
+                name: 'generated-image.jpg',
+                type: 'image/jpeg',
+                previewUrl: imageUrl
+            };
+
+            setChatHistory(prev => [...prev, { role: 'model', text: '', attachment: imageAttachment }]);
+            setIsAiLoading(false);
+            return;
+        }
+
         const parts = [];
         if (attachedFile && aiMode !== 'web') {
             const filePart = await fileToGenerativePart(attachedFile);

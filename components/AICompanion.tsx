@@ -11,6 +11,8 @@ import GlobeAltIcon from './icons/GlobeAltIcon';
 import LinkIcon from './icons/LinkIcon';
 import CameraIcon from './icons/CameraIcon';
 import CameraModal from './CameraModal';
+import PhotoIcon from './icons/PhotoIcon';
+import ImagePreviewModal from './ImagePreviewModal';
 
 
 interface AICompanionProps {
@@ -26,6 +28,7 @@ const aiModes: { id: AiMode, name: string, description: string, icon: React.FC<R
     { id: 'fast', name: 'Fast', description: 'Quick, low-latency responses.', icon: LightningBoltIcon },
     { id: 'advanced', name: 'Advanced', description: 'For complex, creative tasks.', icon: AcademicCapIcon },
     { id: 'web', name: 'Web Search', description: 'For up-to-date information.', icon: GlobeAltIcon },
+    { id: 'image', name: 'Image Gen', description: 'Create images from text.', icon: PhotoIcon },
 ];
 
 
@@ -34,6 +37,7 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -66,7 +70,7 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
   };
 
   const handleImageCapture = (file: File) => {
-    if (aiMode === 'web') {
+    if (aiMode === 'web' || aiMode === 'image') {
       return;
     }
     clearAttachment();
@@ -80,7 +84,7 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
   };
 
   useEffect(() => {
-    if (aiMode === 'web' && attachedFile) {
+    if ((aiMode === 'web' || aiMode === 'image') && attachedFile) {
         clearAttachment();
     }
   }, [aiMode, attachedFile]);
@@ -104,7 +108,17 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
               {msg.attachment && (
                 <div className="mb-2">
                   {msg.attachment.previewUrl ? (
-                    <img src={msg.attachment.previewUrl} alt="User upload" className="rounded-lg max-h-48" />
+                    <button
+                      onClick={() => setPreviewImageUrl(msg.attachment.previewUrl!)}
+                      className="block rounded-lg overflow-hidden cursor-pointer group focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-700"
+                      title="Click to view larger image"
+                    >
+                      <img 
+                          src={msg.attachment.previewUrl} 
+                          alt={msg.attachment.name} 
+                          className="rounded-lg max-h-48 transition-transform duration-200 group-hover:scale-105" 
+                      />
+                    </button>
                   ) : (
                     <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-500">
                       <FileIcon className="w-6 h-6 text-white flex-shrink-0" />
@@ -115,7 +129,7 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
                   )}
                 </div>
               )}
-              <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+              {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
                {msg.sources && msg.sources.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-600">
                       <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Sources:</h4>
@@ -168,10 +182,10 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
         </div>
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-           <button type="button" onClick={() => fileInputRef.current?.click()} disabled={aiMode === 'web'} className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+           <button type="button" onClick={() => fileInputRef.current?.click()} disabled={aiMode === 'web' || aiMode === 'image'} className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
                <PaperclipIcon className="w-6 h-6" />
            </button>
-           <button type="button" onClick={() => setIsCameraOpen(true)} disabled={aiMode === 'web'} className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+           <button type="button" onClick={() => setIsCameraOpen(true)} disabled={aiMode === 'web' || aiMode === 'image'} className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
                <CameraIcon className="w-6 h-6" />
            </button>
            <div className="flex-1 relative">
@@ -194,7 +208,11 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
                 type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder={aiMode === 'web' ? "Ask me anything about current events..." : "Ask me anything or attach a file..."}
+                placeholder={
+                    aiMode === 'web' ? "Ask me anything about current events..." :
+                    aiMode === 'image' ? "Describe the image you want to create..." :
+                    "Ask me anything or attach a file..."
+                }
                 className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-transparent rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isLoading}
             />
@@ -208,6 +226,11 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
         isOpen={isCameraOpen} 
         onClose={() => setIsCameraOpen(false)} 
         onCapture={handleImageCapture}
+      />
+      <ImagePreviewModal
+        isOpen={!!previewImageUrl}
+        onClose={() => setPreviewImageUrl(null)}
+        imageUrl={previewImageUrl}
       />
     </div>
   );

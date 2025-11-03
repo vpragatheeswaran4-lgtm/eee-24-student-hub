@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import Modal from './Modal';
+import RefreshIcon from './icons/RefreshIcon';
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -12,36 +13,59 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
 
   useEffect(() => {
-    let activeStream: MediaStream | null = null;
-    if (isOpen) {
-      setError(null);
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-          activeStream = stream;
-          setStream(stream);
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        })
-        .catch(err => {
-          console.error("Error accessing camera:", err);
-          setError("Could not access the camera. Please check permissions and ensure your device has a camera.");
-        });
-    } else {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        setStream(null);
-      }
-    }
+    let streamInstance: MediaStream | null = null;
     
-    return () => {
-      if (activeStream) {
-        activeStream.getTracks().forEach(track => track.stop());
-      }
+    const stopCurrentStream = () => {
+        if (streamInstance) {
+            streamInstance.getTracks().forEach(track => track.stop());
+            if (videoRef.current) {
+                videoRef.current.srcObject = null;
+            }
+        }
     };
-  }, [isOpen]);
+
+    if (isOpen) {
+        const getMedia = async () => {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const cameras = devices.filter(device => device.kind === 'videoinput');
+                setVideoDevices(cameras);
+
+                const constraints: MediaStreamConstraints = {};
+                if (cameras.length > 0) {
+                    const deviceId = cameras[currentDeviceIndex % cameras.length].deviceId;
+                    constraints.video = { deviceId: { exact: deviceId } };
+                } else {
+                    constraints.video = true; // Fallback
+                }
+
+                streamInstance = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                setStream(streamInstance);
+                if (videoRef.current) {
+                    videoRef.current.srcObject = streamInstance;
+                }
+                setError(null);
+                
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                setError("Could not access the camera. Please check permissions and try again.");
+            }
+        };
+
+        getMedia();
+    }
+
+    // Cleanup function: runs when component unmounts or deps change
+    return () => {
+        stopCurrentStream();
+        setStream(null);
+    };
+  }, [isOpen, currentDeviceIndex]);
 
   const handleCapture = () => {
     if (videoRef.current && canvasRef.current) {
@@ -63,19 +87,36 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
     }
   };
 
+  const switchCamera = () => {
+    if (videoDevices.length > 1) {
+      setCurrentDeviceIndex(prevIndex => (prevIndex + 1) % videoDevices.length);
+    }
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Take a Picture">
       <div className="flex flex-col items-center">
         {error ? (
-            <p className="text-red-500 text-center">{error}</p>
+            <p className="text-red-500 text-center p-4">{error}</p>
         ) : (
             <>
-                <video ref={videoRef} autoPlay playsInline className="w-full rounded-lg bg-gray-900 max-h-[60vh]"></video>
+                <div className="w-full relative bg-gray-900 rounded-lg overflow-hidden max-h-[60vh]">
+                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover"></video>
+                    {videoDevices.length > 1 && (
+                        <button
+                            onClick={switchCamera}
+                            className="absolute bottom-3 right-3 p-2 bg-black/50 text-white rounded-full hover:bg-black/75 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+                            aria-label="Switch Camera"
+                        >
+                            <RefreshIcon className="w-6 h-6" />
+                        </button>
+                    )}
+                </div>
                 <canvas ref={canvasRef} className="hidden"></canvas>
                 <button
                     onClick={handleCapture}
                     disabled={!stream}
-                    className="mt-4 px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 disabled:bg-gray-400"
+                    className="mt-4 px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                     Capture
                 </button>
