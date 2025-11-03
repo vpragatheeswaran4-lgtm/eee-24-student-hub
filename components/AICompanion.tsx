@@ -28,7 +28,6 @@ const aiModes: { id: AiMode, name: string, description: string, icon: React.FC<R
     { id: 'fast', name: 'Fast', description: 'Quick, low-latency responses.', icon: LightningBoltIcon },
     { id: 'advanced', name: 'Advanced', description: 'For complex, creative tasks.', icon: AcademicCapIcon },
     { id: 'web', name: 'Web Search', description: 'For up-to-date information.', icon: GlobeAltIcon },
-    { id: 'image', name: 'Image Gen', description: 'Create images from text.', icon: PhotoIcon },
 ];
 
 
@@ -70,7 +69,7 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
   };
 
   const handleImageCapture = (file: File) => {
-    if (aiMode === 'web' || aiMode === 'image') {
+    if (aiMode === 'web') {
       return;
     }
     clearAttachment();
@@ -84,7 +83,7 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
   };
 
   useEffect(() => {
-    if ((aiMode === 'web' || aiMode === 'image') && attachedFile) {
+    if (aiMode === 'web' && attachedFile) {
         clearAttachment();
     }
   }, [aiMode, attachedFile]);
@@ -182,10 +181,10 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
         </div>
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-           <button type="button" onClick={() => fileInputRef.current?.click()} disabled={aiMode === 'web' || aiMode === 'image'} className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+           <button type="button" onClick={() => fileInputRef.current?.click()} disabled={aiMode === 'web'} className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
                <PaperclipIcon className="w-6 h-6" />
            </button>
-           <button type="button" onClick={() => setIsCameraOpen(true)} disabled={aiMode === 'web' || aiMode === 'image'} className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+           <button type="button" onClick={() => setIsCameraOpen(true)} disabled={aiMode === 'web'} className="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
                <CameraIcon className="w-6 h-6" />
            </button>
            <div className="flex-1 relative">
@@ -210,7 +209,6 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder={
                     aiMode === 'web' ? "Ask me anything about current events..." :
-                    aiMode === 'image' ? "Describe the image you want to create..." :
                     "Ask me anything or attach a file..."
                 }
                 className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-transparent rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"

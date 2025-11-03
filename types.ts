@@ -34,7 +34,7 @@ export interface EventLink {
 }
 
 export type Tab = 'ai' | 'files' | 'reminders' | 'events';
-export type AiMode = 'balanced' | 'fast' | 'advanced' | 'web' | 'image';
+export type AiMode = 'balanced' | 'fast' | 'advanced' | 'web';
 
 export interface Source {
   uri: string;
