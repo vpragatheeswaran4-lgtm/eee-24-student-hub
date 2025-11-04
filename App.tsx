@@ -160,59 +160,16 @@ const App: React.FC = () => {
 
     setChatHistory(prev => [...prev, { role: 'user', text: effectivePrompt, attachment: newAttachment }]);
 
-    const apiKey = aiMode === 'image' ? process.env.IMAGE_API_KEY : process.env.API_KEY;
+    const apiKey = process.env.API_KEY;
 
     if (!apiKey) {
-      const keyName = aiMode === 'image' ? 'IMAGE_API_KEY' : 'API_KEY';
-      const errorMessage = `The ${keyName} is not configured. Please ask the administrator to set this environment variable in the Vercel project settings.`;
+      const errorMessage = `The API_KEY is not configured. Please ask the administrator to set this environment variable in the Vercel project settings.`;
       setChatHistory(prev => [...prev, { role: 'model', text: errorMessage }]);
       setIsAiLoading(false);
       return;
     }
 
     const ai = new GoogleGenAI({ apiKey });
-
-    if (aiMode === 'image') {
-        try {
-            if (attachedFile) {
-                setChatHistory(prev => [...prev, { role: 'model', text: "Sorry, image generation mode doesn't support file attachments. Please provide a text prompt." }]);
-                return;
-            }
-            if (!effectivePrompt) {
-                 setChatHistory(prev => [...prev, { role: 'model', text: "Please describe the image you want to create." }]);
-                 return;
-            }
-
-            const response = await ai.models.generateImages({
-                model: 'imagen-4.0-generate-001',
-                prompt: effectivePrompt,
-                config: {
-                  numberOfImages: 1,
-                  outputMimeType: 'image/jpeg',
-                  aspectRatio: '1:1',
-                },
-            });
-
-            if (response.generatedImages && response.generatedImages[0]?.image?.imageBytes) {
-                const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-                const imageUrl = `data:image/jpeg;base64,${base64ImageBytes}`;
-                const imageAttachment: ChatAttachment = {
-                    name: `generated-${effectivePrompt.substring(0, 20)}.jpg`,
-                    type: 'image/jpeg',
-                    previewUrl: imageUrl,
-                };
-                setChatHistory(prev => [...prev, { role: 'model', text: ``, attachment: imageAttachment }]);
-            } else {
-                 setChatHistory(prev => [...prev, { role: 'model', text: "Sorry, I couldn't generate an image. Please try a different prompt." }]);
-            }
-        } catch (error) {
-            console.error("Error calling Imagen API:", error);
-            setChatHistory(prev => [...prev, { role: 'model', text: "Sorry, I encountered an error while generating the image. Please try again." }]);
-        } finally {
-            setIsAiLoading(false);
-        }
-        return;
-    }
 
     try {
         const parts = [];

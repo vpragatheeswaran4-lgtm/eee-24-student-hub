@@ -14,7 +14,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
-  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
 
   useEffect(() => {
     let streamInstance: MediaStream | null = null;
@@ -32,18 +32,11 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
         const getMedia = async () => {
             try {
                 const devices = await navigator.mediaDevices.enumerateDevices();
-                const cameras = devices.filter(device => device.kind === 'videoinput');
-                setVideoDevices(cameras);
+                setVideoDevices(devices.filter(device => device.kind === 'videoinput'));
 
-                const constraints: MediaStreamConstraints = {};
-                if (cameras.length > 0) {
-                    const deviceId = cameras[currentDeviceIndex % cameras.length].deviceId;
-                    constraints.video = { deviceId: { exact: deviceId } };
-                } else {
-                    constraints.video = true; // Fallback
-                }
-
-                streamInstance = await navigator.mediaDevices.getUserMedia(constraints);
+                streamInstance = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode }
+                });
                 
                 setStream(streamInstance);
                 if (videoRef.current) {
@@ -52,20 +45,30 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
                 setError(null);
                 
             } catch (err) {
-                console.error("Error accessing camera:", err);
-                setError("Could not access the camera. Please check permissions and try again.");
+                console.error(`Error accessing camera with facingMode: ${facingMode}`, err);
+                try {
+                    console.log("Falling back to any available camera.");
+                    streamInstance = await navigator.mediaDevices.getUserMedia({ video: true });
+                    setStream(streamInstance);
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = streamInstance;
+                    }
+                    setError(null);
+                } catch (fallbackErr) {
+                     console.error("Error accessing camera on fallback:", fallbackErr);
+                     setError("Could not access the camera. Please check permissions and try again.");
+                }
             }
         };
 
         getMedia();
     }
 
-    // Cleanup function: runs when component unmounts or deps change
     return () => {
         stopCurrentStream();
         setStream(null);
     };
-  }, [isOpen, currentDeviceIndex]);
+  }, [isOpen, facingMode]);
 
   const handleCapture = () => {
     if (videoRef.current && canvasRef.current) {
@@ -89,7 +92,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
 
   const switchCamera = () => {
     if (videoDevices.length > 1) {
-      setCurrentDeviceIndex(prevIndex => (prevIndex + 1) % videoDevices.length);
+      setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
     }
   };
 
