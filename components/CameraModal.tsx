@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import Modal from './Modal';
 import RefreshIcon from './icons/RefreshIcon';
+import CameraIcon from './icons/CameraIcon';
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -11,73 +12,84 @@ interface CameraModalProps {
 const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
 
+  const stopStream = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+        videoRef.current.srcObject = null;
+    }
+  }, []);
+
   useEffect(() => {
-    let streamInstance: MediaStream | null = null;
-    
-    const stopCurrentStream = () => {
-        if (streamInstance) {
-            streamInstance.getTracks().forEach(track => track.stop());
-            if (videoRef.current) {
-                videoRef.current.srcObject = null;
-            }
-        }
-    };
-
-    if (isOpen) {
-        const getMedia = async () => {
-            try {
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                setVideoDevices(devices.filter(device => device.kind === 'videoinput'));
-
-                streamInstance = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode }
-                });
-                
-                setStream(streamInstance);
-                if (videoRef.current) {
-                    videoRef.current.srcObject = streamInstance;
-                }
-                setError(null);
-                
-            } catch (err) {
-                console.error(`Error accessing camera with facingMode: ${facingMode}`, err);
-                try {
-                    console.log("Falling back to any available camera.");
-                    streamInstance = await navigator.mediaDevices.getUserMedia({ video: true });
-                    setStream(streamInstance);
-                    if (videoRef.current) {
-                        videoRef.current.srcObject = streamInstance;
-                    }
-                    setError(null);
-                } catch (fallbackErr) {
-                     console.error("Error accessing camera on fallback:", fallbackErr);
-                     setError("Could not access the camera. Please check permissions and try again.");
-                }
-            }
-        };
-
-        getMedia();
+    if (!isOpen) {
+      setError(null);
+      stopStream();
+      return;
     }
 
-    return () => {
-        stopCurrentStream();
-        setStream(null);
+    const startStream = async () => {
+      stopStream(); // Ensure any previous stream is stopped.
+      
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(device => device.kind === 'videoinput');
+        setHasMultipleCameras(videoInputs.length > 1);
+
+        const constraints: MediaStreamConstraints = {
+            video: { 
+                facingMode: { ideal: facingMode } 
+            }
+        };
+        
+        const currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        streamRef.current = currentStream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = currentStream;
+        }
+      } catch (err) {
+        console.error(`Error accessing camera with facingMode: ${facingMode}`, err);
+        // Fallback to any camera if the preferred one fails
+        try {
+            console.log("Falling back to any available camera.");
+            const currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            streamRef.current = currentStream;
+            if (videoRef.current) {
+              videoRef.current.srcObject = currentStream;
+            }
+        } catch (fallbackErr) {
+            console.error("Fallback camera access error:", fallbackErr);
+            setError("Could not access camera. Please ensure permissions are granted in your browser settings and try again.");
+        }
+      }
     };
-  }, [isOpen, facingMode]);
+
+    startStream();
+
+    return () => {
+      stopStream();
+    };
+  }, [isOpen, facingMode, stopStream]);
 
   const handleCapture = () => {
-    if (videoRef.current && canvasRef.current) {
+    if (videoRef.current && canvasRef.current && videoRef.current.readyState >= 3) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const context = canvas.getContext('2d');
       if (context) {
+        // Flip the image horizontally if it's the user-facing camera to match the preview
+        if (facingMode === 'user') {
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+        }
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         canvas.toBlob((blob) => {
           if (blob) {
@@ -85,13 +97,13 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
             onCapture(file);
             onClose();
           }
-        }, 'image/jpeg');
+        }, 'image/jpeg', 0.95);
       }
     }
   };
 
   const switchCamera = () => {
-    if (videoDevices.length > 1) {
+    if (hasMultipleCameras) {
       setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'));
     }
   };
@@ -100,12 +112,15 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
     <Modal isOpen={isOpen} onClose={onClose} title="Take a Picture">
       <div className="flex flex-col items-center">
         {error ? (
-            <p className="text-red-500 text-center p-4">{error}</p>
+            <div className="text-red-500 text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg w-full">
+                <p className="font-semibold">Camera Error</p>
+                <p className="text-sm mt-1">{error}</p>
+            </div>
         ) : (
             <>
-                <div className="w-full relative bg-gray-900 rounded-lg overflow-hidden max-h-[60vh]">
+                <div className="w-full relative bg-gray-900 rounded-lg overflow-hidden max-h-[60vh] aspect-[4/3]">
                     <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover"></video>
-                    {videoDevices.length > 1 && (
+                    {hasMultipleCameras && (
                         <button
                             onClick={switchCamera}
                             className="absolute bottom-3 right-3 p-2 bg-black/50 text-white rounded-full hover:bg-black/75 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
@@ -118,10 +133,11 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onCapture })
                 <canvas ref={canvasRef} className="hidden"></canvas>
                 <button
                     onClick={handleCapture}
-                    disabled={!stream}
-                    className="mt-4 px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    disabled={!videoRef.current?.srcObject}
+                    className="mt-4 px-6 py-3 text-base font-medium text-white bg-blue-600 border border-transparent rounded-full shadow-sm hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                    Capture
+                   <CameraIcon className="w-5 h-5" />
+                   <span>Capture</span>
                 </button>
             </>
         )}

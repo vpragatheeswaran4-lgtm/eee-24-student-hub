@@ -11,7 +11,6 @@ import GlobeAltIcon from './icons/GlobeAltIcon';
 import LinkIcon from './icons/LinkIcon';
 import CameraIcon from './icons/CameraIcon';
 import CameraModal from './CameraModal';
-import PhotoIcon from './icons/PhotoIcon';
 import ImagePreviewModal from './ImagePreviewModal';
 
 
