@@ -12,6 +12,8 @@ import LinkIcon from './icons/LinkIcon';
 import CameraIcon from './icons/CameraIcon';
 import CameraModal from './CameraModal';
 import ImagePreviewModal from './ImagePreviewModal';
+import UserIcon from './icons/UserIcon';
+import MarkdownRenderer from './MarkdownRenderer';
 
 
 interface AICompanionProps {
@@ -98,11 +100,19 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
 
   return (
     <div className="bg-slate-50/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg shadow-lg max-w-4xl mx-auto flex flex-col h-[calc(100vh-10rem)] md:h-[calc(100vh-8rem)]">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {chatHistory.map((msg, index) => (
-          <div key={index} className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {msg.role === 'model' && <SparklesIcon className="w-6 h-6 text-blue-500 flex-shrink-0 mb-1" />}
-            <div className={`max-w-lg p-3 rounded-2xl ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'}`}>
+          <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {msg.role === 'model' && (
+              <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0">
+                <SparklesIcon className="w-5 h-5 text-blue-500" />
+              </div>
+            )}
+            <div className={`max-w-xl px-4 py-3 rounded-2xl ${
+              msg.role === 'user'
+                ? 'bg-blue-600 text-white rounded-br-none'
+                : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none shadow-sm border border-gray-200 dark:border-gray-600'
+            }`}>
               {msg.attachment && (
                 <div className="mb-2">
                   {msg.attachment.previewUrl ? (
@@ -127,7 +137,11 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
                   )}
                 </div>
               )}
-              {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
+              {msg.text && (
+                msg.role === 'model' 
+                  ? <MarkdownRenderer content={msg.text} /> 
+                  : <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+              )}
                {msg.sources && msg.sources.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-600">
                       <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Sources:</h4>
@@ -135,7 +149,7 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
                           {msg.sources.map((source, i) => (
                               <li key={i} className="flex items-start gap-1.5">
                                 <LinkIcon className="w-3 h-3 text-gray-400 mt-1 flex-shrink-0" />
-                                <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate" title={source.uri}>
+                                <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline break-all" title={source.uri}>
                                     {source.title || source.uri}
                                 </a>
                               </li>
@@ -144,16 +158,23 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
                   </div>
               )}
             </div>
+            {msg.role === 'user' && (
+                <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
+                    <UserIcon className="w-5 h-5 text-gray-600 dark:text-gray-300"/>
+                </div>
+            )}
           </div>
         ))}
         {isLoading && (
-           <div className="flex items-end gap-2 justify-start">
-            <SparklesIcon className="w-6 h-6 text-blue-500 flex-shrink-0 mb-1 animate-pulse" />
-            <div className="max-w-lg p-3 rounded-2xl bg-gray-200 dark:bg-gray-700">
-                <div className="flex items-center space-x-1">
-                    <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                    <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                    <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"></div>
+           <div className="flex items-start gap-3 justify-start">
+            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0">
+                <SparklesIcon className="w-5 h-5 text-blue-500 animate-pulse" />
+            </div>
+            <div className="max-w-xl w-full px-4 py-3 rounded-2xl rounded-bl-none bg-white dark:bg-gray-700 shadow-sm border border-gray-200 dark:border-gray-600">
+                <div className="space-y-2.5">
+                    <div className="h-2.5 bg-gray-300 dark:bg-gray-600 rounded-full w-48 animate-pulse"></div>
+                    <div className="h-2.5 bg-gray-300 dark:bg-gray-600 rounded-full w-32 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="h-2.5 bg-gray-300 dark:bg-gray-600 rounded-full w-40 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                 </div>
             </div>
            </div>
@@ -161,22 +182,24 @@ const AICompanion: React.FC<AICompanionProps> = ({ chatHistory, isLoading, onSen
         <div ref={chatEndRef} />
       </div>
       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex justify-center flex-wrap gap-2 mb-3">
-            {aiModes.map(mode => (
-                <button
-                    key={mode.id}
-                    onClick={() => onAiModeChange(mode.id)}
-                    title={mode.description}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                        aiMode === mode.id
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                    }`}
-                >
-                    <mode.icon className="w-4 h-4" />
-                    <span>{mode.name}</span>
-                </button>
-            ))}
+        <div className="mb-3 flex justify-center">
+            <div className="inline-flex items-center bg-gray-200 dark:bg-gray-700 p-1 rounded-full space-x-1">
+                {aiModes.map(mode => (
+                    <button
+                        key={mode.id}
+                        onClick={() => onAiModeChange(mode.id)}
+                        title={mode.description}
+                        className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            aiMode === mode.id
+                            ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow'
+                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-300/50 dark:hover:bg-gray-600/50'
+                        }`}
+                    >
+                        <mode.icon className="w-4 h-4" />
+                        <span>{mode.name}</span>
+                    </button>
+                ))}
+            </div>
         </div>
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />

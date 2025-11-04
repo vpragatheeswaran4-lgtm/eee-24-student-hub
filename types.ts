@@ -4,12 +4,12 @@ export enum UserRole {
 }
 
 export interface UploadedFile {
-  id: string;
+  id: string; // Google Drive File ID
   name: string;
   size: number;
-  type: string;
-  uploadDate: Date;
-  url: string; 
+  type: string; // MimeType
+  uploadDate: Date; // createdTime
+  url: string; // webViewLink from Google Drive
   isLink?: boolean;
   isFolder?: boolean;
   parentId?: string | null;

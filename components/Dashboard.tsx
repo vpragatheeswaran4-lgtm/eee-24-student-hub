@@ -9,15 +9,17 @@ interface DashboardProps {
   userRole: UserRole;
   activeTab: Tab;
   files: UploadedFile[];
+  isFileLoading: boolean;
+  fileError: string | null;
   currentFolderId: string | null;
   onNavigateToFolder: (folderId: string | null) => void;
   reminders: Reminder[];
   eventLinks: EventLink[];
-  onAddFile: (file: File, parentId: string | null) => void;
-  onDeleteFile: (id: string) => void;
-  onAddFileLink: (link: { url: string; name: string }, parentId: string | null) => void;
-  onAddFolder: (folderName: string, parentId: string | null) => void;
-  onRenameFile: (id: string, newName: string) => void;
+  onAddFile: (file: File, parentId: string | null) => Promise<void>;
+  onDeleteFile: (id: string) => Promise<void>;
+  onAddFileLink: (link: { url: string; name: string }, parentId: string | null) => Promise<void>;
+  onAddFolder: (folderName: string, parentId: string | null) => Promise<void>;
+  onRenameFile: (id: string, newName: string) => Promise<void>;
   onAddReminder: (reminder: Omit<Reminder, 'id' | 'attachment' | 'link'>, attachmentFile?: File, linkUrl?: string) => void;
   onDeleteReminder: (id: string) => void;
   onAddEventLink: (eventLink: Omit<EventLink, 'id' | 'attachment'>, attachmentFile?: File) => void;
@@ -34,6 +36,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
     userRole,
     activeTab,
     files,
+    isFileLoading,
+    fileError,
     currentFolderId,
     onNavigateToFolder,
     reminders,
@@ -68,6 +72,8 @@ const Dashboard: React.FC<DashboardProps> = (props) => {
         return <FileList 
           userRole={userRole} 
           files={files} 
+          isLoading={isFileLoading}
+          error={fileError}
           currentFolderId={currentFolderId}
           onNavigate={onNavigateToFolder}
           onAddFile={onAddFile} 

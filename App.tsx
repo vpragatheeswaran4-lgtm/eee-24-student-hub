@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from './components/layout/AppLayout';
 import { UserRole, Tab, UploadedFile, Reminder, EventLink, ChatMessage, ChatAttachment, AiMode, Source } from './types';
 import { GoogleGenAI } from '@google/genai';
@@ -100,18 +100,14 @@ const App: React.FC = () => {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiMode, setAiMode] = useState<AiMode>('balanced');
+  
+  // File State
+  const [files, setFiles] = useState<UploadedFile[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-
+  const [isFileLoading, setIsFileLoading] = useState(true);
+  const [fileError, setFileError] = useState<string | null>(null);
+  
   // Mock data
-  const [files, setFiles] = useState<UploadedFile[]>([
-    { id: 'folder-1', name: 'Course Materials', size: 0, type: 'folder', uploadDate: new Date(), url: '', isFolder: true, parentId: null },
-    { id: 'file-1', name: 'Syllabus.pdf', size: 102400, type: 'application/pdf', uploadDate: new Date(), url: '#', parentId: 'folder-1' },
-    { id: 'folder-2', name: 'ECA', size: 0, type: 'folder', uploadDate: new Date(), url: '', isFolder: true, parentId: null },
-    { id: 'file-2', name: 'Event Schedule.xlsx', size: 25600, type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', uploadDate: new Date(), url: '#', parentId: 'folder-2' },
-    { id: 'folder-3', name: 'Assignments', size: 0, type: 'folder', uploadDate: new Date(), url: '', isFolder: true, parentId: null },
-    { id: 'file-3', name: 'DSP_Assignment_1.pdf', size: 5120, type: 'application/pdf', uploadDate: new Date(), url: '#', parentId: 'folder-3' },
-  ]);
-
   const [reminders, setReminders] = useState<Reminder[]>([
     { id: '1', title: 'Assignment 3 Submission', description: 'Submit the DSP assignment on the portal.', dateTime: new Date('2024-08-01T23:59:00Z') },
     { id: '2', title: 'Mid-Term Exam Registration', description: 'Register for the upcoming mid-term exams. Last date!', dateTime: new Date('2024-07-25T17:00:00Z') },
@@ -120,6 +116,31 @@ const App: React.FC = () => {
   const [eventLinks, setEventLinks] = useState<EventLink[]>([
     { id: '1', title: 'Guest Lecture on AI', description: 'Join us for a lecture by Dr. Smith on AI in Electrical Engineering.', url: '#', dateTime: new Date('2024-07-30T11:00:00Z') },
   ]);
+
+  const fetchFiles = async (folderId: string | null) => {
+    setIsFileLoading(true);
+    setFileError(null);
+    try {
+        const parentId = folderId || 'root';
+        const response = await fetch(`/api/files?parentId=${parentId}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to fetch files.');
+        }
+        const data: UploadedFile[] = await response.json();
+        const formattedData = data.map(f => ({ ...f, uploadDate: new Date(f.uploadDate) }));
+        setFiles(formattedData);
+    } catch (err: any) {
+        setFileError(err.message);
+        console.error(err);
+    } finally {
+        setIsFileLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFiles(currentFolderId);
+  }, [currentFolderId]);
   
   const fileToGenerativePart = (file: File) => {
     return new Promise<{inlineData: {data:string, mimeType: string}}>((resolve, reject) => {
@@ -232,88 +253,82 @@ const App: React.FC = () => {
   };
 
 
-  const handleAddFile = (file: File, parentId: string | null) => {
-    const newFile: UploadedFile = {
-      id: crypto.randomUUID(),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      uploadDate: new Date(),
-      url: URL.createObjectURL(file),
-      isLink: false,
-      parentId,
-    };
-    setFiles(prev => [newFile, ...prev]);
+  const handleAddFile = async (file: File, parentId: string | null) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('parentId', parentId || 'root');
+
+    try {
+      const response = await fetch('/api/files', { method: 'POST', body: formData });
+      if (!response.ok) throw new Error('Upload failed');
+      await fetchFiles(currentFolderId); // Refetch files
+    } catch (error) {
+      console.error(error);
+      setFileError('Failed to upload file.');
+    }
   };
 
-  const handleAddFileLink = (link: { url: string; name: string }, parentId: string | null) => {
-    const newLinkFile: UploadedFile = {
-        id: crypto.randomUUID(),
-        name: link.name,
-        size: 0,
-        type: 'link',
-        uploadDate: new Date(),
-        url: link.url,
-        isLink: true,
-        parentId,
-    };
-    setFiles(prev => [newLinkFile, ...prev]);
+  const handleAddFileLink = async (link: { url: string; name: string }, parentId: string | null) => {
+    try {
+        const response = await fetch('/api/files', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'link', name: link.name, url: link.url, parentId: parentId || 'root' }),
+        });
+        if (!response.ok) throw new Error('Failed to add link');
+        await fetchFiles(currentFolderId);
+    } catch (error) {
+        console.error(error);
+        setFileError('Failed to add link.');
+    }
   }
   
-  const handleRenameFile = (id: string, newName: string) => {
-    setFiles(prevFiles => prevFiles.map(file => 
-      file.id === id ? { ...file, name: newName } : file
-    ));
-  };
-
-  const handleDeleteFile = (id: string) => {
-    let idsToDelete: string[] = [id];
-    const fileToDelete = files.find(f => f.id === id);
-
-    if (fileToDelete?.isFolder) {
-        const getDescendants = (folderId: string): string[] => {
-            const children = files.filter(f => f.parentId === folderId);
-            let descendants: string[] = [];
-            for (const child of children) {
-                descendants.push(child.id);
-                if (child.isFolder) {
-                    descendants = [...descendants, ...getDescendants(child.id)];
-                }
-            }
-            return descendants;
-        };
-        idsToDelete = [...idsToDelete, ...getDescendants(id)];
+  const handleRenameFile = async (id: string, newName: string) => {
+    try {
+        const response = await fetch(`/api/files?id=${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newName }),
+        });
+        if (!response.ok) throw new Error('Failed to rename file');
+        await fetchFiles(currentFolderId);
+    } catch (error) {
+        console.error(error);
+        setFileError('Failed to rename file.');
     }
-    
-    idsToDelete.forEach(deleteId => {
-        const file = files.find(f => f.id === deleteId);
-        if (file && !file.isLink && file.url.startsWith('blob:')) {
-            URL.revokeObjectURL(file.url);
-        }
-    });
-    
-    setFiles(prev => prev.filter(f => !idsToDelete.includes(f.id)));
+  };
+
+  const handleDeleteFile = async (id: string) => {
+     try {
+        const response = await fetch(`/api/files?id=${id}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Failed to delete file');
+        await fetchFiles(currentFolderId);
+    } catch (error) {
+        console.error(error);
+        setFileError('Failed to delete file.');
+    }
   };
 
 
-  const handleAddFolder = (folderName: string, parentId: string | null) => {
-    const newFolder: UploadedFile = {
-      id: crypto.randomUUID(),
-      name: folderName,
-      size: 0,
-      type: 'folder',
-      uploadDate: new Date(),
-      url: '',
-      isFolder: true,
-      isLink: false,
-      parentId,
-    };
-    setFiles(prev => [newFolder, ...prev]);
+  const handleAddFolder = async (folderName: string, parentId: string | null) => {
+    try {
+        const response = await fetch('/api/files', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'folder', name: folderName, parentId: parentId || 'root' }),
+        });
+        if (!response.ok) throw new Error('Failed to create folder');
+        await fetchFiles(currentFolderId);
+    } catch (error) {
+        console.error(error);
+        setFileError('Failed to create folder.');
+    }
   };
 
   const handleAddReminder = (reminder: Omit<Reminder, 'id' | 'attachment' | 'link'>, attachmentFile?: File, linkUrl?: string) => {
     let attachment: UploadedFile | undefined = undefined;
     if (attachmentFile) {
+        // This part needs adjustment if reminders are to be stored persistently
         attachment = {
             id: crypto.randomUUID(),
             name: attachmentFile.name,
@@ -333,6 +348,7 @@ const App: React.FC = () => {
   const handleAddEventLink = (eventLink: Omit<EventLink, 'id' | 'attachment'>, attachmentFile?: File) => {
     let attachment: UploadedFile | undefined = undefined;
     if (attachmentFile) {
+         // This part needs adjustment if events are to be stored persistently
         attachment = {
             id: crypto.randomUUID(),
             name: attachmentFile.name,
@@ -358,6 +374,8 @@ const App: React.FC = () => {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             files={files}
+            isFileLoading={isFileLoading}
+            fileError={fileError}
             currentFolderId={currentFolderId}
             onNavigateToFolder={setCurrentFolderId}
             reminders={reminders}

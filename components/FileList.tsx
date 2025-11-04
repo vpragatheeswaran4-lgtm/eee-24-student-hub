@@ -12,13 +12,15 @@ import ArrowLeftIcon from './icons/ArrowLeftIcon';
 interface FileListProps {
   userRole: UserRole;
   files: UploadedFile[];
+  isLoading: boolean;
+  error: string | null;
   currentFolderId: string | null;
   onNavigate: (folderId: string | null) => void;
-  onAddFile: (file: File, parentId: string | null) => void;
-  onDeleteFile: (id: string) => void;
-  onAddFileLink: (link: { url: string; name: string }, parentId: string | null) => void;
-  onAddFolder: (folderName: string, parentId: string | null) => void;
-  onRename: (id: string, newName: string) => void;
+  onAddFile: (file: File, parentId: string | null) => Promise<void>;
+  onDeleteFile: (id: string) => Promise<void>;
+  onAddFileLink: (link: { url: string; name: string }, parentId: string | null) => Promise<void>;
+  onAddFolder: (folderName: string, parentId: string | null) => Promise<void>;
+  onRename: (id: string, newName: string) => Promise<void>;
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -145,7 +147,7 @@ const FolderCreator: React.FC<{ onAddFolder: (name: string) => void; onCancel: (
 };
 
 
-const FileList: React.FC<FileListProps> = ({ userRole, files, currentFolderId, onNavigate, onAddFile, onDeleteFile, onAddFileLink, onAddFolder, onRename }) => {
+const FileList: React.FC<FileListProps> = ({ userRole, files, isLoading, error, currentFolderId, onNavigate, onAddFile, onDeleteFile, onAddFileLink, onAddFolder, onRename }) => {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -173,7 +175,6 @@ const FileList: React.FC<FileListProps> = ({ userRole, files, currentFolderId, o
   };
 
   const displayedFiles = files
-    .filter(file => file.parentId === currentFolderId)
     .sort((a, b) => {
         if (a.isFolder && !b.isFolder) return -1;
         if (!a.isFolder && b.isFolder) return 1;
@@ -210,7 +211,11 @@ const FileList: React.FC<FileListProps> = ({ userRole, files, currentFolderId, o
       )}
 
        <div className="space-y-3">
-        {displayedFiles.length > 0 ? displayedFiles.map(file => (
+        {isLoading ? (
+          <div className="text-center text-gray-500 py-8">Loading files...</div>
+        ) : error ? (
+          <div className="text-center text-red-500 py-8 bg-red-50 dark:bg-red-900/20 rounded-lg">{error}</div>
+        ) : displayedFiles.length > 0 ? displayedFiles.map(file => (
           <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
             <div className="flex items-center space-x-3 min-w-0 flex-1">
                 {file.isFolder ? <FolderIcon className="w-6 h-6 text-yellow-500 flex-shrink-0" /> : file.isLink ? <LinkIcon className="w-6 h-6 text-green-500 flex-shrink-0" /> : <FileIcon className="w-6 h-6 text-blue-500 flex-shrink-0" />}
@@ -234,7 +239,7 @@ const FileList: React.FC<FileListProps> = ({ userRole, files, currentFolderId, o
                                 </span>
                             </button>
                         ) : (
-                            <a href={file.url} download={!file.isLink ? file.name : undefined} target={file.isLink ? "_blank" : "_self"} rel={file.isLink ? "noopener noreferrer" : ""} className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate hover:underline" title={file.name}>
+                            <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate hover:underline" title={file.name}>
                                 {file.name}
                             </a>
                         )
@@ -262,7 +267,7 @@ const FileList: React.FC<FileListProps> = ({ userRole, files, currentFolderId, o
             </p>
         )}
       </div>
-      {userRole === UserRole.Student && currentFolderId && (
+      {currentFolderId && (
         <div className="mt-6 text-center">
           <button
             onClick={handleBack}
